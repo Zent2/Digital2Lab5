@@ -1,0 +1,133 @@
+#include <Energia.h>
+
+const int inicioCarreraPin = PA_7;  // Pin externo (PF4) como botón de inicio de carrera
+const int jugador1Pin = PUSH1;      // Botón del jugador 1 en PUSH1
+const int jugador2Pin = PUSH2;      // Botón del jugador 2 en PUSH2
+
+const int ledR = RED_LED;    // LED rojo del semáforo en RED_LED
+const int ledG = GREEN_LED;  // LED verde del semáforo en GREEN_LED
+const int ledB = BLUE_LED;   // LED azul del semáforo en BLUE_LED
+
+byte contadorJugador1 = 0;
+byte contadorJugador2 = 0;
+int carreraIniciada = 0;
+int bandera1=0;
+int bandera2=0;
+
+const int ledCount = 8;    // the number of LEDs in the bar graph
+int ledPins[] = { 
+  PA_6, PA_5, PB_4, PE_5, PE_4, PB_1,PB_0,PB_5 };   // an array of pin numbers to which LEDs are attached
+int ledPins2[] = { 
+  PA_2, PD_7, PD_6, PC_7, PC_6, PC_5,PC_4 ,PB_3 };   // an array of pin numbers to which LEDs are attached
+
+void setup() {
+  pinMode(inicioCarreraPin, INPUT_PULLUP);
+  pinMode(jugador1Pin, INPUT_PULLUP);
+  pinMode(jugador2Pin, INPUT_PULLUP);
+
+  pinMode(ledR, OUTPUT);
+  pinMode(ledG, OUTPUT);
+  pinMode(ledB, OUTPUT);
+
+  // Inicializar semáforo en rojo
+  digitalWrite(ledR, HIGH);
+  digitalWrite(ledG, LOW);
+  digitalWrite(ledB, LOW);
+  // loop over the pin array and set them all to output:
+  for (int thisLed = 0; thisLed < ledCount; thisLed++) {
+    pinMode(ledPins[thisLed], OUTPUT); 
+    //ledPins[thisLed]=0;
+  }
+  for (int thisLed = 0; thisLed < ledCount; thisLed++) {
+    pinMode(ledPins2[thisLed], OUTPUT); 
+    //ledPins2[thisLed]=0;
+  }
+}
+
+void loop() {
+  if (carreraIniciada==0) {
+    contadorJugador1=0;
+    contadorJugador2=0;
+    mostrarContadorEnLEDs(contadorJugador1, ledPins, ledCount);
+    mostrarContadorEnLEDs(contadorJugador2, ledPins2, ledCount);
+    bandera1=0;
+    bandera2=0;
+    digitalWrite(ledR, HIGH);
+    digitalWrite(ledG, LOW);
+    digitalWrite(ledB, LOW);
+    if (digitalRead(inicioCarreraPin) == LOW) {
+      iniciarCarrera();
+    }
+  } else if (carreraIniciada==1) {
+    if (digitalRead(jugador1Pin) == LOW && contadorJugador2 != 255) {
+      digitalWrite(ledG, HIGH);  // Cambiar semáforo a azul
+      digitalWrite(ledR, HIGH);  // Cambiar semáforo a azul
+      while (digitalRead(jugador1Pin) == LOW);
+      correrBitIzquierda(contadorJugador1);
+      
+      mostrarContadorEnLEDs(contadorJugador1, ledPins, ledCount);
+      digitalWrite(ledG, LOW);  // Cambiar semáforo a azul
+      digitalWrite(ledR, LOW);  // Cambiar semáforo a azul
+      if (contadorJugador1==128) {
+        contadorJugador1=255;
+        mostrarContadorEnLEDs(contadorJugador1, ledPins, ledCount);
+        carreraIniciada=0;
+        delay(3000);
+      }
+      
+    }
+
+    if (digitalRead(jugador2Pin) == LOW && contadorJugador1 !=255) {
+      digitalWrite(ledB, HIGH);  // Cambiar semáforo a azul
+      digitalWrite(ledR, HIGH);  // Cambiar semáforo a azul
+      while (digitalRead(jugador2Pin) == LOW);
+      correrBitIzquierda(contadorJugador2);
+      
+    
+      mostrarContadorEnLEDs(contadorJugador2, ledPins2, ledCount);
+      digitalWrite(ledB, LOW);  // Cambiar semáforo a azul
+      digitalWrite(ledR, LOW);  // Cambiar semáforo a azul
+      if (contadorJugador2==128) {
+      contadorJugador2=255;
+      carreraIniciada=0;
+      mostrarContadorEnLEDs(contadorJugador2, ledPins2, ledCount);
+      delay(3000);
+    }
+    }
+  }
+}
+
+void iniciarCarrera() {
+  carreraIniciada = 1;
+  digitalWrite(ledR, LOW);
+  digitalWrite(ledG, HIGH);  // Cambiar semáforo a verde
+  delay(1000);
+  digitalWrite(ledG, LOW);   // Apagar semáforo
+  digitalWrite(ledB, HIGH);  // Cambiar semáforo a azul
+  delay(1000);
+  digitalWrite(ledB, LOW);   // Apagar semáforo
+}
+
+void correrBitIzquierda(byte &contador) {
+  contador = (contador << 1);  // Correr el bit a la izquierda
+  if (bandera1==0){
+    contador=1;
+    bandera1=1;
+  }
+  if (bandera2==0){
+    contador=1;
+    bandera2=1;
+  }
+}
+void mostrarContadorEnLEDs(int contador, int *ledPins, int ledCount) {
+  for (int thisLed = 0; thisLed < ledCount; thisLed++) {
+    // Si el valor del bit en esta posición está encendido en el contador, enciende el LED.
+    if (contador & (1 << thisLed)) {
+      digitalWrite(ledPins[thisLed], HIGH);
+    } 
+    // Si no, apaga el LED.
+    else {
+      digitalWrite(ledPins[thisLed], LOW); 
+    }
+  }
+}
